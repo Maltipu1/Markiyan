@@ -1,0 +1,9 @@
+From: billing@beta-hosting.example
+Subject: Invoice #20431 is due in 7 days
+
+Dear customer,
+
+Your invoice #20431 for 3 VPS (srv-04, srv-05, srv-06) totalling 42.00 EUR is due in 7 days.
+The amount will be charged automatically from the card on file.
+
+Beta Hosting Billing

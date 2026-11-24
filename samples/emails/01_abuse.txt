@@ -1,0 +1,13 @@
+From: abuse-desk@alpha-cloud.example
+Subject: Immediate action required! Abuse report for cobalt-market.test
+
+Hello,
+
+We have received a complaint regarding content hosted on your server srv-03 (cobalt-market.test).
+The reporter states that product photos on the landing page are used without permission (copyright).
+
+Please remove the content or explain why the report is incorrect within 24 hours.
+If we do not hear from you, the server will be suspended.
+
+Ticket #AC-55120
+Alpha Cloud Trust & Safety

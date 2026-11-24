@@ -1,0 +1,9 @@
+From: noc@gamma-vps.example
+Subject: Scheduled maintenance in FRA-2, Saturday 02:00-04:00 UTC
+
+Hi,
+
+We will perform planned network maintenance in the FRA-2 location this Saturday from 02:00 to 04:00 UTC.
+Short connectivity interruptions (up to 5 minutes) are possible. No action is required from your side.
+
+Gamma VPS Network Operations

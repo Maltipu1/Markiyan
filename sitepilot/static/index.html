@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SitePilot</title>
+<style>
+  :root { --bg:#0f1115; --card:#171a21; --line:#262b36; --text:#e6e8ee; --muted:#8a91a3;
+          --ok:#3fb950; --warn:#d29922; --err:#f85149; --acc:#7c8cff; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:14px/1.45 system-ui,-apple-system,sans-serif; }
+  header { display:flex; align-items:center; gap:16px; padding:14px 20px; border-bottom:1px solid var(--line); flex-wrap:wrap; }
+  header h1 { font-size:18px; margin:0; }
+  header .clock { color:var(--muted); font-variant-numeric:tabular-nums; }
+  header .sp { flex:1; }
+  main { display:grid; grid-template-columns:minmax(0,1.3fr) minmax(0,1fr); gap:16px; padding:16px 20px; }
+  @media (max-width:900px) { main { grid-template-columns:1fr; padding:12px 16px; } }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px; }
+  .card h2 { font-size:13px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:0 0 10px; }
+  .stack > * + * { margin-top:16px; }
+  button { background:#232838; color:var(--text); border:1px solid var(--line); border-radius:6px; padding:5px 10px; cursor:pointer; font:inherit; font-size:12px; }
+  button:hover { border-color:var(--acc); }
+  button.primary { background:var(--acc); border-color:var(--acc); color:#0b0d12; font-weight:600; }
+  input, textarea, select { background:#0f1218; color:var(--text); border:1px solid var(--line); border-radius:6px; padding:6px 8px; font:inherit; }
+  textarea { width:100%; min-height:120px; font:12px/1.4 ui-monospace,monospace; }
+  .servers { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:10px; }
+  .srv { border:1px solid var(--line); border-radius:8px; padding:10px; }
+  .srv.dead { border-color:var(--err); opacity:.6; }
+  .srv .hd { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+  .srv .meta { color:var(--muted); font-size:12px; }
+  .site { display:flex; align-items:center; gap:6px; padding:3px 0; font-size:13px; }
+  .site .name { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .site .ver { color:var(--muted); font-size:11px; }
+  .dot { width:8px; height:8px; border-radius:50%; background:var(--muted); flex:none; }
+  .dot.up { background:var(--ok); } .dot.warn { background:var(--warn); } .dot.down { background:var(--err); }
+  .site button { padding:1px 6px; font-size:11px; }
+  .log { max-height:380px; overflow:auto; font-size:12.5px; }
+  .log div { padding:3px 0; border-bottom:1px dashed #1f2430; display:flex; gap:8px; }
+  .log .t { color:var(--muted); font-variant-numeric:tabular-nums; flex:none; }
+  .lvl-ok { color:var(--ok); } .lvl-warn { color:var(--warn); } .lvl-error { color:var(--err); }
+  .note { background:#11151d; border-left:3px solid var(--acc); padding:6px 10px; margin:6px 0; border-radius:4px; font-size:13px; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .muted { color:var(--muted); }
+  .badge { font-size:11px; padding:1px 6px; border-radius:10px; border:1px solid var(--line); }
+  .glitch { color:var(--warn); }
+</style>
+</head>
+<body>
+<header>
+  <h1>SitePilot</h1>
+  <span class="clock" id="clock">—</span>
+  <span id="glitch" class="glitch"></span>
+  <span class="sp"></span>
+  <button id="pause">Пауза</button>
+  <button id="glitchBtn" title="Монітор втрачає мережу на 4 хв">Збій монітора</button>
+  <button id="reset">Скинути</button>
+</header>
+<main>
+  <div class="stack">
+    <section class="card">
+      <h2>Сервери і сайти</h2>
+      <div class="servers" id="servers"></div>
+      <p class="muted" style="margin:10px 0 0;font-size:12px">«✕» — сайт віддає 500 (повторне натискання лагодить), «~» — один пропущений пінг, «вбити» — сервер зникає.</p>
+    </section>
+    <section class="card">
+      <h2>Новий сайт і реліз</h2>
+      <div class="row">
+        <input id="domain" placeholder="new-site.test" size="18">
+        <button class="primary" id="provBtn">Підняти</button>
+        <span class="sp" style="width:20px"></span>
+        <input id="ver" value="1.1.0" size="6">
+        <label class="row" style="gap:4px"><input type="checkbox" id="healthy" checked> робочий</label>
+        <button id="dryBtn">Пробний прогін</button>
+        <button class="primary" id="rollBtn">Розкотити</button>
+      </div>
+      <div id="opResult"></div>
+    </section>
+    <section class="card">
+      <h2>Лист від провайдера</h2>
+      <div class="row" id="samples" style="margin-bottom:8px"></div>
+      <textarea id="mail" placeholder="Встав текст листа…"></textarea>
+      <div class="row" style="margin-top:8px"><button class="primary" id="triageBtn">Розібрати</button><span class="muted" id="triageHint"></span></div>
+      <div id="inbox"></div>
+    </section>
+  </div>
+  <div class="stack">
+    <section class="card">
+      <h2>Відкриті інциденти</h2>
+      <div id="incidents" class="muted">немає</div>
+    </section>
+    <section class="card">
+      <h2>Що отримали люди</h2>
+      <div id="notes" class="muted">поки тихо</div>
+    </section>
+    <section class="card">
+      <h2>Журнал платформи</h2>
+      <div class="log" id="log"></div>
+    </section>
+  </div>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const clock = (t) => { const m = Math.floor(t / 60); return `T+${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`; };
+
+async function api(path, body) {
+  const r = await fetch(path, { method: body === undefined ? "GET" : "POST",
+    headers: { "Content-Type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body) });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.detail ? JSON.stringify(data.detail) : r.statusText);
+  return data;
+}
+
+function render(s) {
+  $("clock").textContent = clock(s.time) + (s.running ? "" : " · пауза");
+  $("pause").textContent = s.running ? "Пауза" : "Далі";
+  $("glitch").textContent = s.monitor_glitch ? "⚠ монітор не бачить мережу — тривоги притримано" : "";
+  const byDomain = Object.fromEntries(s.sites.map((x) => [x.domain, x]));
+  $("servers").innerHTML = s.servers.map((srv) => `
+    <div class="srv ${srv.healthy ? "" : "dead"}">
+      <div class="hd"><b>${esc(srv.id)}</b>
+        ${srv.healthy ? `<button data-kill="${esc(srv.id)}">вбити</button>` : `<span class="badge lvl-error">${srv.draining ? "евакуйовано" : "лежить"}</span>`}</div>
+      <div class="meta">${esc(srv.provider)} · ${esc(srv.ip)} · ${srv.sites.length}/${srv.capacity}</div>
+      ${srv.sites.map((d) => { const x = byDomain[d] || {}; return `
+        <div class="site"><span class="dot ${esc(x.status)}"></span><span class="name">${esc(d)}</span>
+          <span class="ver">${esc(x.version)}</span>
+          <button data-break="${esc(d)}" title="зламати / полагодити">✕</button>
+          <button data-blip="${esc(d)}" title="один пропущений пінг">~</button></div>`; }).join("")}
+    </div>`).join("");
+  $("incidents").innerHTML = s.incidents.length ? s.incidents.map((i) =>
+    `<div class="note"><b>${esc(i.domain)}</b> — ${esc(i.for)} · ${esc(i.error)} ${i.notified ? '<span class="badge lvl-error">людям повідомлено</span>' : '<span class="badge">чекаю 5 хв</span>'}</div>`).join("") : "немає";
+  $("notes").innerHTML = s.notifications.length ? s.notifications.map((n) =>
+    `<div class="note"><span class="muted">${esc(n.time)}</span> ${esc(n.text)}</div>`).join("") : "поки тихо";
+  $("log").innerHTML = s.events.map((e) =>
+    `<div><span class="t">${esc(e.time)}</span><span class="lvl-${esc(e.level)}">${esc(e.message)}</span></div>`).join("");
+  $("inbox").innerHTML = s.inbox.map((m) => `
+    <div class="note"><b>${esc(m.category)}</b> · <span class="${m.urgency === "critical" ? "lvl-error" : m.needs_alert ? "lvl-warn" : ""}">${esc(m.urgency)}</span>
+      · <span class="badge">${esc(m.source)}</span> ${m.deadline ? "· дедлайн: " + esc(m.deadline) : ""}<br>
+      ${esc(m.summary)}<br>${(m.red_flags || []).map((f) => `<span class="lvl-error">⚠ ${esc(f)}</span><br>`).join("")}<span class="muted">→ ${esc(m.action)}</span>${m.note ? `<br><span class="muted">${esc(m.note)}</span>` : ""}</div>`).join("");
+}
+
+async function refresh() { try { render(await api("/api/state")); } catch (e) { $("clock").textContent = "немає звʼязку з сервером"; } }
+async function act(fn) { try { await fn(); } catch (e) { $("opResult").innerHTML = `<div class="note lvl-error">${esc(e.message)}</div>`; } refresh(); }
+
+document.addEventListener("click", (ev) => {
+  const b = ev.target.closest("button"); if (!b) return;
+  if (b.dataset.kill) act(() => api(`/api/chaos/server/${encodeURIComponent(b.dataset.kill)}`, {}));
+  if (b.dataset.break) act(() => api(`/api/chaos/site/${encodeURIComponent(b.dataset.break)}`, {}));
+  if (b.dataset.blip) act(() => api(`/api/chaos/blip/${encodeURIComponent(b.dataset.blip)}`, {}));
+  if (b.dataset.sample !== undefined) $("mail").value = window.SAMPLES[+b.dataset.sample].text;
+});
+$("pause").onclick = () => act(() => api("/api/pause", {}));
+$("reset").onclick = () => act(() => api("/api/reset", {}));
+$("glitchBtn").onclick = () => act(() => api("/api/chaos/glitch", {}));
+$("provBtn").onclick = () => act(async () => {
+  const j = await api("/api/provision", { domain: $("domain").value.trim() });
+  $("opResult").innerHTML = `<div class="note">${esc(j.domain)}: <b>${esc(j.status)}</b><br>` +
+    j.steps.map((s) => `${s.ok ? "✓" : "✗"} ${esc(s.step)} — ${esc(s.detail)}${s.attempt > 1 ? ` (спроба ${s.attempt})` : ""}`).join("<br>") + "</div>";
+});
+const roll = (dry) => act(async () => {
+  const r = await api("/api/rollout", { version: $("ver").value.trim(), healthy: $("healthy").checked, dry_run: dry });
+  $("opResult").innerHTML = `<div class="note">Реліз ${esc(r.version)}: <b>${esc(r.status)}</b> · етапи: ${esc(r.stages.map((x) => x.length).join(" → ") || "—")}` +
+    (r.failed_on ? `<br>зупинено на ${esc(r.failed_on)}: ${esc(r.reason)}` : r.reason ? `<br>${esc(r.reason)}` : "") + "</div>";
+});
+$("dryBtn").onclick = () => roll(true);
+$("rollBtn").onclick = () => roll(false);
+$("triageBtn").onclick = () => act(async () => {
+  $("triageHint").textContent = "розбираю…";
+  try { await api("/api/triage", { text: $("mail").value }); } finally { $("triageHint").textContent = ""; }
+});
+
+api("/api/samples").then((list) => {
+  window.SAMPLES = list;
+  $("samples").innerHTML = list.map((s, i) => `<button data-sample="${i}">${esc(s.name)}</button>`).join("");
+});
+refresh();
+setInterval(refresh, 1000);
+</script>
+</body>
+</html>

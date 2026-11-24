@@ -1,0 +1,9 @@
+[project]
+name = "sitepilot"
+version = "0.1.0"
+description = "Self-healing platform for a fleet of websites (demo on simulated infrastructure)"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
